@@ -1,10 +1,8 @@
-from __future__ import (absolute_import, division, print_function,
- unicode_literals)
-import datetime # For datetime objects
-import os.path # To manage paths
-import sys # To find out the script name (in argv[0])
-# Import the backtrader platform
+import datetime
+import os.path
+import sys
 import backtrader as bt
+import math
 
 ########   Date,Open,High,Low,Close,Adj Close,Volume  #####################
 
@@ -20,8 +18,8 @@ class TestStrategy(bt.Strategy):
 
     def next(self):
 
-
         self.log('Close, %.2f' % self.dataclose[0])
+
         # Check if an order is pending ... if yes, we cannot send a 2nd one
         # if self.order:
         #     return
@@ -30,27 +28,36 @@ class TestStrategy(bt.Strategy):
         # Ventana tempora
         ventana_temporal = 5
 
+        MM50 = self.calcular_SMA(50)
+        MM200 = self.calcular_SMA(200)
+        desviacion_estandar = self.calcular_desviacion_estandar(20)
+        bolu = MM50 + 1 * desviacion_estandar
+        bold = MM50 - 1 * desviacion_estandar
+
         if not self.position:
-            MM50 = calcular_SMA(50)
-            MM200 = calcular_SMA(200)
-            # if self.dataclose[0] < self.dataclose[-1]:
-            #     if self.dataclose[-1] < self.dataclose[-2]:
-            #     # previous close less than the previous close # BUY, BUY,BUY!!!
-            #     #  (with default parameters)
-            #         self.log('BUY CREATE, %.2f' % self.dataclose[0])
-            #     # Keep track of the created order to avoid a 2nd order
-            #         self.order = self.buy()
-            if MM50 > MM200:
+
+            if (self.dataclose[0] < bold):
+                # Momento de comprar
                 self.log('BUY CREATE, %.2f' % self.dataclose[0])
                 self.order = self.buy()
 
+            #if MM50 > MM200:
+            #    self.log('BUY CREATE, %.2f' % self.dataclose[0])
+            #    self.order = self.buy()
+
         else:
-            # Already in the market ... we might sell
-            if len(self) >= (self.bar_executed + 5):
-            # SELL, SELL, SELL!!! (with all possible default parameters)
+
+            if (self.dataclose[0] > bolu):
+                # Momento de vender
                 self.log('SELL CREATE, %.2f' % self.dataclose[0])
-                # Keep track of the created order to avoid a 2nd order
                 self.order = self.sell()
+
+            # Already in the market ... we might sell
+            #if len(self) >= (self.bar_executed + 5):
+            # SELL, SELL, SELL!!! (with all possible default parameters)
+            #    self.log('SELL CREATE, %.2f' % self.dataclose[0])
+            #    # Keep track of the created order to avoid a 2nd order
+            #    self.order = self.sell()
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -59,12 +66,14 @@ class TestStrategy(bt.Strategy):
         # Check if an order has been completed # Attention: broker could reject order if not enough cash
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.log('BUY EXECUTED, %.2f' % order.executed.price)
+                self.log("Se completo una compra")
+                #self.log('BUY EXECUTED, %.2f' % order.executed.price)
             elif order.issell():
-                MM50 = calcular_SMA(50)
-                MM200 = calcular_SMA(200)
-                if MM50 < MM200:
-                    self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                self.log("Se completo una venta")
+                #MM50 = self.calcular_SMA(50)
+                #MM200 = self.calcular_SMA(200)
+                #if MM50 < MM200:
+                #    self.log('SELL EXECUTED, %.2f' % order.executed.price)
 
             self.bar_executed = len(self) # Saving when the order was executed
 
@@ -73,27 +82,43 @@ class TestStrategy(bt.Strategy):
                 # Write down: no pending order
         self.order = None
 
-def calcular_SMA(ventana):
-    sma = []
-    for i in range(0 - ventana + 1):
-        ventana_datos = self.dataclose[i:i+ventana]
-        sma_valor = sum(ventana_datos) / ventana
-        sma.append(sma_valor)
-    return sma
-        # Simply log the closing price of the series from the reference
+
+    def calcular_SMA(self, ventana):
+
+        return self.calcular_media_de_cierre(ventana)
+    
+
+    def calcular_media_de_cierre(self, ventana):
+
+        assert type(ventana) == int, "ventana debe ser int, se recibió un " + str(type(ventana))
+
+        suma = 0
+
+        for i in range(-ventana + 1, 1):
+            suma += self.dataclose[i]
+
+        return suma / ventana
+    
+
+    def calcular_desviacion_estandar(self, ventana):
+
+        media = self.calcular_media_de_cierre(ventana)
+
+        suma_cuadrada = 0
+
+        for i in range(-ventana + 1, 1):
+            suma_cuadrada += math.pow(self.dataclose[i] - media, 2)
+        
+        return math.sqrt(suma_cuadrada/ventana)
 
 
 if __name__ == '__main__':
 
-    # Create a cerebro entity
     cerebro = bt.Cerebro()
 
-    # Datas are in a subfolder of the samples. Need to find where the script is
-    # because it could have been called from anywhere
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
 
-    datapath = os.path.join(modpath, './datas/yhoo-1996-2014.txt')
-    # Create a Data Feed
+    datapath = os.path.join(modpath, './data/yhoo-1996-2014.txt')
     
     data = bt.feeds.YahooFinanceCSVData(
         dataname=datapath,
@@ -101,9 +126,9 @@ if __name__ == '__main__':
         fromdate=datetime.datetime(2000, 1, 1),
         # Do not pass values after this date
         todate=datetime.datetime(2000, 12, 31),
-        reverse=False)
-    
-    # Add the Data Feed to Cerebro
+        reverse=False
+    )
+
     cerebro.adddata(data)
 
     cerebro.addstrategy(TestStrategy)
@@ -120,7 +145,6 @@ if __name__ == '__main__':
     print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
     moneyFinish = cerebro.broker.getvalue()
-
 
     difMoney = moneyFinish - moneyInic
     print('Diferencia de dinero total: %.2f' % difMoney)
