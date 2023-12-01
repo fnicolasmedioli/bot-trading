@@ -67,23 +67,28 @@ def main():
 
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
 
-    datapath = os.path.join(modpath, './data/yhoo-1996-2014.txt')
+    datapath = os.path.join(modpath, './data/orcl-1995-2014.txt')
 
     data = bt.feeds.YahooFinanceCSVData(
         dataname=datapath,
         fromdate=datetime.datetime(2000, 1, 1),
-        todate=datetime.datetime(2000, 12, 31),
+        todate=datetime.datetime(2002, 12, 31),
         reverse=False
     )
 
     cerebro.adddata(data)
 
     cerebro.addstrategy(BollingerStrategy, period=20, devfactor=0.05)
+
+
     cerebro.addstrategy(HombreColgadoStrategy)
+
     cerebro.addstrategy(RSIStrategy, sobrecompra=30, sobreventa=15)
 
     cerebro.broker.setcash(100000)
+    cerebro.broker.setcommission(commission=0.001)
 
+    print()
     print('Dinero inicial: %.2f' % cerebro.broker.getvalue())
 
     money_inic = cerebro.broker.getvalue()
