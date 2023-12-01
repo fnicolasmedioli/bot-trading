@@ -7,6 +7,7 @@ cantidad_transacciones = 0
 
 
 class RSIStrategy(bt.Strategy):
+
     params = (
         ("sobrecompra", 50),
         ("sobreventa", 20),
@@ -53,6 +54,7 @@ class BollingerStrategy(bt.Strategy):
 
 
 class HombreColgadoStrategy(bt.Strategy):
+
     def __init__(self):
         self.dataclose = self.datas[0].close
         self.datalow = self.datas[0].low
@@ -63,6 +65,7 @@ class HombreColgadoStrategy(bt.Strategy):
 
 
 def main():
+
     cerebro = bt.Cerebro()
 
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -79,16 +82,12 @@ def main():
     cerebro.adddata(data)
 
     cerebro.addstrategy(BollingerStrategy, period=20, devfactor=0.05)
-
-
     cerebro.addstrategy(HombreColgadoStrategy)
-
     cerebro.addstrategy(RSIStrategy, sobrecompra=30, sobreventa=15)
 
     cerebro.broker.setcash(100000)
     cerebro.broker.setcommission(commission=0.001)
 
-    print()
     print('Dinero inicial: %.2f' % cerebro.broker.getvalue())
 
     money_inic = cerebro.broker.getvalue()
