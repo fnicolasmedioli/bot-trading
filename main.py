@@ -72,15 +72,15 @@ def main():
     data = bt.feeds.YahooFinanceCSVData(
         dataname=datapath,
         fromdate=datetime.datetime(2000, 1, 1),
-        todate=datetime.datetime(2001, 12, 31),
+        todate=datetime.datetime(2000, 12, 31),
         reverse=False
     )
 
     cerebro.adddata(data)
 
-    cerebro.addstrategy(BollingerStrategy, period=20, devfactor=2)
+    cerebro.addstrategy(BollingerStrategy, period=20, devfactor=0.05)
     cerebro.addstrategy(HombreColgadoStrategy)
-    cerebro.addstrategy(RSIStrategy, sobrecompra=60, sobreventa=20)
+    cerebro.addstrategy(RSIStrategy, sobrecompra=30, sobreventa=15)
 
     cerebro.broker.setcash(100000)
 
